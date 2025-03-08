@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# wordpress-helm-chart
-Wordpress set up, clone read the readme.md and deploy(scalable)
-=======
 # WordPress Helm Chart with Cloudflare Tunnel by George Tatevosov
 
 This Helm chart deploys WordPress with MySQL database and a Cloudflare tunnel for secure access using Bitnami Nginx-WordPress image for CMS
@@ -154,4 +150,3 @@ helm uninstall wordpress-site -n production
 
 Good luck!!
 For redirects and changes to ingress or nginx i suggest backing everything up!
->>>>>>> 9b86ceb (Fully functional Wordpress Helm)
