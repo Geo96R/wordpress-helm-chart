@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-cloudflare-config
+  namespace: {{ .Release.Namespace }}
+data:
+  config.yaml: |
+    tunnel: {{ .Values.cloudflare.tunnelId }}
+    credentials-file: /etc/cloudflare/credentials.json
+    ingress:
+      - hostname: {{ .Values.domainName }}
+        service: http://wordpress-svc:8080
+      - hostname: "*.{{ .Values.domainName }}"
+        service: http://wordpress-svc:8080
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-cloudflare-tunnel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: cloudflare-tunnel
+    {{- include "wordpress-helm.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflare-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflare-tunnel
+    spec:
+      containers:
+      - name: cloudflare-tunnel
+        image: cloudflare/cloudflared:latest
+        args:
+          - "tunnel"
+          - "--no-autoupdate"
+          - "--config"
+          - "/etc/cloudflare/config.yaml"
+          - "run"
+        volumeMounts:
+        - name: cloudflare-tunnel-credentials
+          mountPath: /etc/cloudflare/credentials.json
+          subPath: credentials.json
+          readOnly: true
+        - name: cloudflare-config
+          mountPath: /etc/cloudflare/config.yaml
+          subPath: config.yaml
+          readOnly: true
+      volumes:
+      - name: cloudflare-tunnel-credentials
+        secret:
+          secretName: {{ .Release.Name }}-{{ .Values.cloudflare.credentialsSecret }}
+      - name: cloudflare-config
+        configMap:
+          name: {{ .Release.Name }}-cloudflare-config

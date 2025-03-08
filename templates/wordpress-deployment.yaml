@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-wordpress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: wordpress
+    {{- include "wordpress-helm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.wordpress.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-wordpress
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-wordpress
+    spec:
+      containers:
+      - name: wordpress
+        image: {{ .Values.wordpress.image }}
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        volumeMounts:
+        - mountPath: /bitnami/wordpress
+          name: wordpress-volume
+        env:
+        - name: WORDPRESS_DATABASE_NAME
+          value: {{ .Values.database.name | quote }}
+        - name: WORDPRESS_TABLE_PREFIX
+          value: {{ .Values.wordpress.env.WORDPRESS_TABLE_PREFIX | quote }}
+        - name: WORDPRESS_DATABASE_HOST
+          value: {{ .Values.database.host | quote }}
+        - name: WORDPRESS_DATABASE_PORT_NUMBER
+          value: {{ .Values.wordpress.env.WORDPRESS_DATABASE_PORT_NUMBER | quote }}
+        - name: WORDPRESS_DATABASE_USER
+          value: {{ .Values.database.user | quote }}
+        - name: WORDPRESS_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-wordpress-secrets
+              key: database-password
+        - name: WORDPRESS_ENABLE_REVERSE_PROXY
+          value: {{ .Values.wordpress.env.WORDPRESS_ENABLE_REVERSE_PROXY | quote }}
+        - name: WORDPRESS_ENABLE_HTTPS
+          value: {{ .Values.wordpress.env.WORDPRESS_ENABLE_HTTPS | quote }}
+        - name: WORDPRESS_BLOG_NAME
+          value: {{ .Values.wordpress.env.WORDPRESS_BLOG_NAME | quote }}
+        resources:
+          limits:
+            memory: {{ .Values.wordpress.resources.limits.memory }}
+            cpu: {{ .Values.wordpress.resources.limits.cpu }}
+          requests:
+            memory: {{ .Values.wordpress.resources.requests.memory }}
+            cpu: {{ .Values.wordpress.resources.requests.cpu }}
+      volumes:
+      - name: wordpress-volume
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-wordpress-pvc
